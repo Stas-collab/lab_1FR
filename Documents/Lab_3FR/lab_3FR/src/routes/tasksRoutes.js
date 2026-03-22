@@ -1,23 +1,14 @@
-const { getTasks, createTask, updateTask, deleteTask } = require('#controllers/tasksController.js');
+import { getTasks, createTask, updateTask, deleteTask } from '#controllers/tasksController.js';
+import {
+  getTasksSchema,
+  createTaskSchema,
+  updateTaskSchema,
+  deleteTaskSchema,
+} from '#schemas/task.schema.js';
 
-function handleTaskRoutes(req, res, method, pathname, url) {
-  if (method === 'GET' && pathname === '/tasks') {
-    return getTasks(req, res, url);
-  }
-
-  if (method === 'POST' && pathname === '/tasks') {
-    return createTask(req, res);
-  }
-
-  if (method === 'PATCH' && pathname.startsWith('/tasks/')) {
-    return updateTask(req, res, pathname);
-  }
-
-  if (method === 'DELETE' && pathname.startsWith('/tasks/')) {
-    return deleteTask(req, res, pathname);
-  }
-
-  return false;
+export default async function tasksRoutes(fastify) {
+  fastify.get('/tasks', { schema: getTasksSchema }, getTasks);
+  fastify.post('/tasks', { schema: createTaskSchema }, createTask);
+  fastify.patch('/tasks/:id', { schema: updateTaskSchema }, updateTask);
+  fastify.delete('/tasks/:id', { schema: deleteTaskSchema }, deleteTask);
 }
-
-module.exports = { handleTaskRoutes };

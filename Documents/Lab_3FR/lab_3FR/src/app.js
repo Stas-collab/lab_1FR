@@ -1,73 +1,68 @@
-const { createServer } = require('node:http');
+import Fastify from 'fastify';
+import fastifyEnv from '@fastify/env';
+import helmet from '@fastify/helmet';
+import cors from '@fastify/cors';
+import sensible from '@fastify/sensible';
 
-const config = require('#config/config.js');
-const { handleTaskRoutes } = require('#routes/tasksRoutes.js');
+import { envSchema } from '#config/env.schema.js';
+import { taskSchema } from '#schemas/task.schema.js';
+import { errorHandler } from '#utils/errorHandler.js';
+import tasksRoutes from '#routes/tasksRoutes.js';
+import healthRoutes from '#routes/healthRoutes.js';
 
-const server = createServer((req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const method = req.method;
-  const pathname = url.pathname;
-
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-
-  // ── HEALTH ──────────────────────────────────────────────────────────
-  if (method === 'GET' && pathname === '/health') {
-    res.statusCode = 200;
-    return res.end(
-      JSON.stringify({
-        pid: process.pid,
-        nodeVersion: process.version,
-        platform: process.platform,
-        uptime: process.uptime(),
-        memoryUsage: process.memoryUsage(),
-      })
-    );
-  }
-
-  // ── TASK ROUTES ─────────────────────────────────────────────────────
-  if (handleTaskRoutes(req, res, method, pathname, url) !== false) return;
-
-  // ── 404 ─────────────────────────────────────────────────────────────
-  res.statusCode = 404;
-  res.end(JSON.stringify({ error: 'Route not found' }));
-});
-
-// ── START ──────────────────────────────────────────────────────────────
-server.listen(config.PORT, config.HOSTNAME, () => {
-  console.log(`Server running at http://${config.HOSTNAME}:${config.PORT}`);
-});
-
-// ── GRACEFUL SHUTDOWN ──────────────────────────────────────────────────
-function gracefulShutdown(signal) {
-  console.log(`Received ${signal}. Shutting down gracefully...`);
-
-  const timeout = setTimeout(() => {
-    console.error('Force shutdown due to timeout');
-    process.exit(1);
-  }, 10000);
-
-  server.close((err) => {
-    clearTimeout(timeout);
-
-    if (err) {
-      console.error('Error during shutdown:', err);
-      process.exit(1);
-    }
-
-    console.log('Server closed successfully');
-    process.exit(0);
+export const buildApp = async () => {
+  const fastify = Fastify({
+    logger: {
+      // eslint-disable-next-line no-restricted-syntax
+      level: process.env.NODE_ENV === 'production' ? 'error' : 'info',
+      transport:
+        // eslint-disable-next-line no-restricted-syntax
+        process.env.NODE_ENV !== 'production'
+          ? {
+              target: 'pino-pretty',
+              options: { colorize: true, translateTime: 'HH:MM:ss' },
+            }
+          : undefined,
+    },
   });
-}
 
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  // 1. @fastify/env — fastify.config доступний для всіх наступних плагінів
+  await fastify.register(fastifyEnv, {
+    schema: envSchema,
+    dotenv: true,
+  });
 
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  gracefulShutdown('uncaughtException');
-});
+  // 2. @fastify/helmet — захисні заголовки для всіх відповідей
+  await fastify.register(helmet, { global: true });
 
-process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled Rejection:', reason);
-  gracefulShutdown('unhandledRejection');
-});
+  // 3. @fastify/cors — CORS заголовки для всіх відповідей
+  await fastify.register(cors, {
+    origin: fastify.config.NODE_ENV === 'production' ? 'https://example.com' : '*',
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  });
+
+  // 4. @fastify/sensible — reply.notFound(), reply.unauthorized() тощо
+  await fastify.register(sensible);
+
+  // 5. Спільна схема Task — реєструється до маршрутів щоб $ref: 'Task#' працював
+  fastify.addSchema(taskSchema);
+
+  // 6. setErrorHandler — реєструється до маршрутів щоб перехоплювати їх помилки
+  fastify.setErrorHandler(errorHandler);
+
+  // 7. Глобальний хук — виконується для кожного запиту (демонстрація global vs local hook)
+  fastify.addHook('onRequest', async (request) => {
+    request.log.info({ method: request.method, url: request.url }, 'Incoming request');
+  });
+
+  // 8. Маршрути — останніми, залежать від усіх попередніх компонентів
+  await fastify.register(healthRoutes);
+  await fastify.register(tasksRoutes);
+
+  // onClose хук — виконується при fastify.close()
+  fastify.addHook('onClose', async (instance) => {
+    instance.log.info('Server closed — all connections terminated');
+  });
+
+  return fastify;
+};

@@ -1,16 +1,12 @@
-const js = require('@eslint/js');
+import js from '@eslint/js';
 
-module.exports = [
+export default [
   js.configs.recommended,
   {
     languageOptions: {
       ecmaVersion: 2022,
+      sourceType: 'module',
       globals: {
-        require: 'readonly',
-        module: 'readonly',
-        exports: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
         process: 'readonly',
         console: 'readonly',
         setTimeout: 'readonly',
@@ -26,6 +22,15 @@ module.exports = [
       'no-console': 'off',
       semi: ['error', 'always'],
       quotes: ['error', 'single', { avoidEscape: true, allowTemplateLiterals: false }],
+      // Забороняємо process.env — використовувати тільки fastify.config
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "MemberExpression[object.name='process'][property.name='env']",
+          message:
+            'Use fastify.config instead of process.env. Define all env vars via @fastify/env schema.',
+        },
+      ],
     },
   },
 ];
