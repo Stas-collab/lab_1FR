@@ -1,4 +1,4 @@
-// Спільна форма об'єкта Task — реєструється через fastify.addSchema()
+// Спільна форма об'єкта Task — додано dueDate та image
 export const taskSchema = {
   $id: 'Task',
   type: 'object',
@@ -7,6 +7,8 @@ export const taskSchema = {
     title: { type: 'string' },
     done: { type: 'boolean' },
     priority: { type: 'string', enum: ['low', 'medium', 'high'] },
+    dueDate: { type: 'string' },
+    image: { type: ['string', 'null'] },
   },
 };
 
@@ -36,6 +38,7 @@ export const createTaskSchema = {
       title: { type: 'string', minLength: 1 },
       priority: { type: 'string', enum: ['low', 'medium', 'high'] },
       done: { type: 'boolean' },
+      dueDate: { type: 'string' },
     },
     additionalProperties: false,
   },
@@ -59,6 +62,7 @@ export const updateTaskSchema = {
       title: { type: 'string', minLength: 1 },
       priority: { type: 'string', enum: ['low', 'medium', 'high'] },
       done: { type: 'boolean' },
+      dueDate: { type: 'string' },
     },
     minProperties: 1,
     additionalProperties: false,
@@ -82,6 +86,46 @@ export const deleteTaskSchema = {
       type: 'object',
       properties: {
         message: { type: 'string' },
+      },
+    },
+  },
+};
+
+// POST /tasks/:id/image
+export const uploadImageSchema = {
+  params: {
+    type: 'object',
+    properties: {
+      id: { type: 'integer', minimum: 1 },
+    },
+    required: ['id'],
+  },
+  response: {
+    200: { $ref: 'Task#' },
+  },
+};
+
+// GET /tasks/export — без body schema (повертає CSV)
+export const exportTasksSchema = {};
+
+// POST /tasks/import
+export const importTasksSchema = {
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        imported: { type: 'integer' },
+        rejectedCount: { type: 'integer' },
+        rejected: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              index: { type: 'integer' },
+              reason: { type: 'string' },
+            },
+          },
+        },
       },
     },
   },
