@@ -23,6 +23,7 @@
   },
   "scripts": {
     "start": "node src/server.js",
+    "external": "json-server db.json --port 3001",
     "dev": "nodemon src/server.js",
     "lint": "eslint \"src/**/*.js\"",
     "lint:fix": "eslint \"src/**/*.js\" --fix",
@@ -38,8 +39,11 @@
     "@fastify/env": "^4.4.0",
     "@fastify/helmet": "^11.1.1",
     "@fastify/multipart": "^8.3.1",
+    "@fastify/rate-limit": "^8.1.1",
     "@fastify/sensible": "^5.5.0",
     "@fastify/static": "^7.0.4",
+    "@fastify/swagger": "^8.15.0",
+    "@fastify/swagger-ui": "^3.1.0",
     "csv-parse": "^5.6.0",
     "csv-stringify": "^6.7.0",
     "fastify": "^4.28.1",
@@ -48,6 +52,7 @@
   "devDependencies": {
     "@eslint/js": "^9.0.0",
     "eslint": "^9.0.0",
+    "json-server": "^1.0.0-beta.15",
     "nodemon": "^3.1.0",
     "pino-pretty": "^11.0.0",
     "prettier": "^3.3.0"

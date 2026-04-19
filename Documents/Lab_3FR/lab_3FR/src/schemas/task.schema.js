@@ -14,6 +14,7 @@ export const taskSchema = {
 
 // GET /tasks
 export const getTasksSchema = {
+  tags: ['tasks-v1'],
   querystring: {
     type: 'object',
     properties: {
@@ -31,6 +32,7 @@ export const getTasksSchema = {
 
 // POST /tasks
 export const createTaskSchema = {
+  tags: ['tasks-v1'],
   body: {
     type: 'object',
     required: ['title', 'priority'],
@@ -124,6 +126,70 @@ export const importTasksSchema = {
               index: { type: 'integer' },
               reason: { type: 'string' },
             },
+          },
+        },
+      },
+    },
+  },
+};
+
+// GET /api/v1/tasks/:id/details
+export const getTaskDetailsSchema = {
+  tags: ['tasks-v1'],
+  params: {
+    type: 'object',
+    properties: { id: { type: 'integer', minimum: 1 } },
+    required: ['id'],
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        id: { type: 'integer' },
+        title: { type: 'string' },
+        done: { type: 'boolean' },
+        priority: { type: ['object', 'null'] },
+        dueDate: { type: 'string' },
+        image: { type: ['string', 'null'] },
+      },
+    },
+    404: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'integer' },
+        error: { type: 'string' },
+        message: { type: 'string' },
+      },
+    },
+  },
+};
+
+// GET /api/v2/items (пагінація)
+export const getTasksPaginatedSchema = {
+  tags: ['tasks-v2'],
+  querystring: {
+    type: 'object',
+    properties: {
+      page: { type: 'integer', minimum: 1, default: 1 },
+      limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
+    },
+    additionalProperties: false,
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: { $ref: 'Task#' },
+        },
+        meta: {
+          type: 'object',
+          properties: {
+            total: { type: 'integer' },
+            page: { type: 'integer' },
+            limit: { type: 'integer' },
+            totalPages: { type: 'integer' },
           },
         },
       },

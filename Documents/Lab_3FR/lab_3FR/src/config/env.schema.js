@@ -2,6 +2,10 @@ export const envSchema = {
   type: 'object',
   required: ['PORT', 'APP_HOSTNAME', 'NODE_ENV', 'ADMIN_API_KEY'],
   properties: {
+    GITHUB_TOKEN: {
+      type: 'string',
+      default: '',
+    },
     PORT: {
       type: 'string',
       default: '3000',

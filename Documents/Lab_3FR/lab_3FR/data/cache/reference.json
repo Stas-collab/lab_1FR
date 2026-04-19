@@ -1,0 +1,20 @@
+{
+  "ts": 1776609326455,
+  "data": [
+    {
+      "id": "1",
+      "name": "high",
+      "maxDays": 1
+    },
+    {
+      "id": "2",
+      "name": "medium",
+      "maxDays": 7
+    },
+    {
+      "id": "3",
+      "name": "low",
+      "maxDays": 30
+    }
+  ]
+}

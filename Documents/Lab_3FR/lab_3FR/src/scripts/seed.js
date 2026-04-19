@@ -6,7 +6,7 @@ const DATA_DIR = path.join(process.cwd(), 'data', 'items');
 const TASKS = [
   {
     id: 1,
-    title: 'Learn Node.js',
+    title: 'wgfwgwd',
     done: false,
     priority: 'high',
     dueDate: '2025-06-01',

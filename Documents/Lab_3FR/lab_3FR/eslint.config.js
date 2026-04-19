@@ -15,6 +15,8 @@ export default [
         clearInterval: 'readonly',
         URL: 'readonly',
         Buffer: 'readonly',
+        fetch: 'readonly', // ← додай
+        AbortController: 'readonly', // ← додай
       },
     },
     rules: {

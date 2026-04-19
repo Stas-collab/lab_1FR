@@ -6,6 +6,7 @@ import {
   exportTasks,
   importTasks,
   uploadImage,
+  getTaskDetails, // НОВИЙ
 } from '#controllers/tasksController.js';
 
 import {
@@ -16,10 +17,10 @@ import {
   exportTasksSchema,
   importTasksSchema,
   uploadImageSchema,
+  getTaskDetailsSchema, // НОВИЙ
 } from '#schemas/task.schema.js';
 
 export default async function tasksRoutes(fastify) {
-  // ВАЖЛИВО: /export має бути до /:id щоб не конфліктувати
   fastify.get('/tasks/export', { schema: exportTasksSchema }, exportTasks);
   fastify.post('/tasks/import', { schema: importTasksSchema }, importTasks);
 
@@ -29,4 +30,7 @@ export default async function tasksRoutes(fastify) {
   fastify.delete('/tasks/:id', { schema: deleteTaskSchema }, deleteTask);
 
   fastify.post('/tasks/:id/image', { schema: uploadImageSchema }, uploadImage);
+
+  // НОВИЙ ендпоінт: деталі із зовнішнім сервісом
+  fastify.get('/tasks/:id/details', { schema: getTaskDetailsSchema }, getTaskDetails);
 }

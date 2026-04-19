@@ -6,6 +6,7 @@ import { parse } from 'csv-parse/sync';
 import { createWriteStream } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
+import { fetchExternalDetails } from '#utils/externalFetch.js';
 
 // ── Базові CRUD ───────────────────────────────────────────────────────────────
 
@@ -157,4 +158,14 @@ export async function uploadImage(request, reply) {
   const updated = await tasksService.update(id, { image: relativePath });
 
   return reply.send({ ...updated, image: buildImageUrl(request, updated.image) });
+}
+
+// ── GET /api/v1/tasks/:id/details ─────────────────────────────────────────
+export async function getTaskDetails(request, reply) {
+  const task = await tasksService.findById(request.params.id);
+  if (!task) throw reply.notFound(MESSAGES.TASK_NOT_FOUND);
+
+  const priority = await fetchExternalDetails(task.priority);
+
+  return reply.send({ ...task, image: buildImageUrl(request, task.image), priority });
 }
