@@ -1,4 +1,5 @@
 export const healthSchema = {
+  tags: ['health'],
   response: {
     200: {
       type: 'object',
@@ -10,6 +11,7 @@ export const healthSchema = {
 };
 
 export const healthDetailsSchema = {
+  tags: ['health'],
   response: {
     200: {
       type: 'object',

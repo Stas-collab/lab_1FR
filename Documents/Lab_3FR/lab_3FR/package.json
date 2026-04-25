@@ -19,7 +19,9 @@
     "#constants/*": "./src/constants/*",
     "#utils/*": "./src/utils/*",
     "#models/*": "./src/models/*",
-    "#migrations/*": "./src/migrations/*"
+    "#migrations/*": "./src/migrations/*",
+    "#events/*": "./src/events/*",
+    "#transforms/*": "./src/transforms/*"
   },
   "scripts": {
     "start": "node src/server.js",
@@ -44,6 +46,7 @@
     "@fastify/static": "^7.0.4",
     "@fastify/swagger": "^8.15.0",
     "@fastify/swagger-ui": "^3.1.0",
+    "@fastify/websocket": "^8.3.1",
     "csv-parse": "^5.6.0",
     "csv-stringify": "^6.7.0",
     "fastify": "^4.28.1",

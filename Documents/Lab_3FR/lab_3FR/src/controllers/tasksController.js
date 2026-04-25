@@ -7,7 +7,11 @@ import { createWriteStream } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import { fetchExternalDetails } from '#utils/externalFetch.js';
-
+import { taskEvents } from '#events/taskEvents.js';
+import { Readable, Transform } from 'stream';
+import { pipeline } from 'stream/promises';
+import { OverdueTransform } from '#transforms/overdueTransform.js';
+import { ToCSVTransform } from '#transforms/toCSVTransform.js';
 // ── Базові CRUD ───────────────────────────────────────────────────────────────
 
 export async function getTasks(request, reply) {
@@ -17,43 +21,75 @@ export async function getTasks(request, reply) {
 
 export async function createTask(request, reply) {
   const task = await tasksService.create(request.body);
-  return reply.status(201).send({ ...task, image: buildImageUrl(request, task.image) });
+  const result = { ...task, image: buildImageUrl(request, task.image) };
+  taskEvents.emit('task:created', result); // ← додати
+  return reply.status(201).send(result);
 }
 
 export async function updateTask(request, reply) {
   const task = await tasksService.update(request.params.id, request.body);
   if (!task) throw reply.notFound(MESSAGES.TASK_NOT_FOUND);
-  return reply.send({ ...task, image: buildImageUrl(request, task.image) });
+  const result = { ...task, image: buildImageUrl(request, task.image) };
+  taskEvents.emit('task:updated', result); // ← додати
+  return reply.send(result);
 }
 
 export async function deleteTask(request, reply) {
   const removed = await tasksService.remove(request.params.id);
   if (!removed) throw reply.notFound(MESSAGES.TASK_NOT_FOUND);
+  taskEvents.emit('task:deleted', { id: Number(request.params.id) }); // ← додати
   return reply.send({ message: 'Task deleted' });
 }
 
 // ── Export CSV ────────────────────────────────────────────────────────────────
 
 export async function exportTasks(request, reply) {
+  const withTransform = request.query.transform === 'true';
   const tasks = await tasksService.findAll({});
-
-  const rows = tasks.map((t) => ({
-    id: t.id,
-    title: t.title,
-    done: t.done,
-    priority: t.priority,
-    dueDate: t.dueDate,
-    image: buildImageUrl(request, t.image) ?? '',
-  }));
-
-  const csv = stringify(rows, { header: true });
 
   reply
     .header('Content-Type', 'text/csv; charset=utf-8')
-    .header('Content-Disposition', 'attachment; filename="tasks.csv"')
-    .send(csv);
-}
+    .header('Content-Disposition', 'attachment; filename="tasks.csv"');
 
+  if (!withTransform) {
+    // Як раніше — без трансформації
+    const rows = tasks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      done: t.done,
+      priority: t.priority,
+      dueDate: t.dueDate,
+      image: buildImageUrl(request, t.image) ?? '',
+    }));
+    const csv = stringify(rows, { header: true });
+    return reply.send(csv);
+  }
+
+  // З трансформацією через Transform stream — objectMode pipeline
+  const readable = Readable.from(tasks);
+  const overdue = new OverdueTransform();
+  const toCSV = new ToCSVTransform(true);
+
+  await pipeline(readable, overdue, toCSV, reply.raw);
+}
+// ── NDJSON stream ─────────────────────────────────────────────────────────
+export async function streamTasks(request, reply) {
+  const tasks = await tasksService.findAll({});
+
+  reply.type('application/x-ndjson');
+
+  const readable = Readable.from(tasks);
+
+  // Transform: об'єкт → JSON рядок з \n
+  const toNDJSON = new Transform({
+    objectMode: true,
+    transform(task, _enc, cb) {
+      cb(null, JSON.stringify({ ...task, image: buildImageUrl(request, task.image) }) + '\n');
+    },
+  });
+
+  await pipeline(readable, toNDJSON, reply.raw);
+}
 // ── Import CSV / JSON ─────────────────────────────────────────────────────────
 
 // Схема для валідації одного запису при імпорті

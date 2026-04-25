@@ -21,6 +21,9 @@ import tasksRoutesV2 from '#routes/tasksRoutesV2.js';
 import githubRoutesV1 from '#routes/githubRoutesV1.js';
 import githubRoutesV2 from '#routes/githubRoutesV2.js';
 
+import fastifyWebsocket from '@fastify/websocket';
+import backupRoutes from '#routes/backupRoutes.js';
+
 export const buildApp = async () => {
   const fastify = Fastify({
     logger: {
@@ -41,6 +44,9 @@ export const buildApp = async () => {
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   });
   await fastify.register(sensible);
+
+  await fastify.register(fastifyWebsocket);
+  await fastify.register(backupRoutes, { prefix: '/api/v1' });
 
   // ── Rate Limiting (глобально, 100 req/хв) ────────────────────────────────
   await fastify.register(rateLimit, {

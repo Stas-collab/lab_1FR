@@ -1,4 +1,5 @@
 export const sharedReposSchema = {
+  tags: ['github'],
   querystring: {
     type: 'object',
     required: ['repo'],

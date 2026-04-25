@@ -108,7 +108,16 @@ export const uploadImageSchema = {
 };
 
 // GET /tasks/export — без body schema (повертає CSV)
-export const exportTasksSchema = {};
+export const exportTasksSchema = {
+  tags: ['tasks-v1'],
+  querystring: {
+    type: 'object',
+    properties: {
+      transform: { type: 'string', enum: ['true', 'false'] },
+    },
+    additionalProperties: false,
+  },
+};
 
 // POST /tasks/import
 export const importTasksSchema = {
@@ -193,6 +202,16 @@ export const getTasksPaginatedSchema = {
           },
         },
       },
+    },
+  },
+};
+
+export const streamTasksSchema = {
+  tags: ['tasks-v1'],
+  response: {
+    200: {
+      type: 'string',
+      description: 'NDJSON stream of tasks',
     },
   },
 };
