@@ -12,7 +12,6 @@ import fastifyWebsocket from '@fastify/websocket';
 import path from 'path';
 
 import mysqlPlugin from '../db/mysql.js';
-import { checkMigration } from '../db/migrate.js';
 import { createTasksRepository } from '#repositories/tasksRepository.js';
 import { createTasksService } from '#services/tasksService.js';
 
@@ -25,6 +24,7 @@ import tasksRoutesV2 from '#routes/tasksRoutesV2.js';
 import githubRoutesV1 from '#routes/githubRoutesV1.js';
 import githubRoutesV2 from '#routes/githubRoutesV2.js';
 import backupRoutes from '#routes/backupRoutes.js';
+import drizzlePlugin from '../db/drizzle.js';
 
 export const buildApp = async () => {
   const fastify = Fastify({
@@ -49,9 +49,10 @@ export const buildApp = async () => {
 
   // ── MySQL ─────────────────────────────────────────────────────────────────
   await fastify.register(mysqlPlugin);
+  await fastify.register(drizzlePlugin);
 
   // ── Dependency Injection ──────────────────────────────────────────────────
-  const tasksRepository = createTasksRepository(fastify.mysql);
+  const tasksRepository = createTasksRepository(fastify.drizzle);
   const tasksService = createTasksService(tasksRepository);
   fastify.decorate('tasksService', tasksService);
 
@@ -118,8 +119,6 @@ export const buildApp = async () => {
   fastify.addHook('onClose', async (instance) => {
     instance.log.info('Server closed');
   });
-
-  await checkMigration(fastify);
 
   return fastify;
 };

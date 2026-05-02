@@ -1,10 +1,12 @@
 import mysql from 'mysql2/promise';
+import { drizzle } from 'drizzle-orm/mysql2';
+import { tasks } from '../../db/schema.js';
 import 'dotenv/config';
 
 const TASKS = [
-  { title: 'Learn Node.js', done: false, priority: 'high', dueDate: '2025-06-01' },
-  { title: 'Read Fastify docs', done: false, priority: 'medium', dueDate: '2025-06-10' },
-  { title: 'Write lab report', done: true, priority: 'low', dueDate: '2025-05-30' },
+  { title: 'Learn Node.js', done: 0, priority: 'high', dueDate: '2025-06-01' },
+  { title: 'Read Fastify docs', done: 0, priority: 'medium', dueDate: '2025-06-10' },
+  { title: 'Write lab report', done: 1, priority: 'low', dueDate: '2025-05-30' },
 ];
 
 const seed = async (force = false) => {
@@ -21,30 +23,22 @@ const seed = async (force = false) => {
     database: process.env.MYSQL_DB ?? 'lab8',
   });
 
-  const [rows] = await pool.execute('SELECT COUNT(*) as count FROM tasks');
-  const count = rows[0].count;
+  const db = drizzle(pool, { mode: 'default' });
 
-  if (!force && count > 0) {
-    console.log(`DB already has ${count} tasks. Use seed:force to reset.`);
+  const existing = await db.select().from(tasks);
+
+  if (!force && existing.length > 0) {
+    console.log(`DB already has ${existing.length} tasks. Use seed:force to reset.`);
     await pool.end();
     return;
   }
 
   if (force) {
-    await pool.execute('DELETE FROM tasks');
-    await pool.execute('ALTER TABLE tasks AUTO_INCREMENT = 1');
+    await db.delete(tasks);
     console.log('Cleared existing tasks.');
   }
 
-  for (const task of TASKS) {
-    await pool.execute('INSERT INTO tasks (title, done, priority, dueDate) VALUES (?, ?, ?, ?)', [
-      task.title,
-      task.done ? 1 : 0,
-      task.priority,
-      task.dueDate,
-    ]);
-  }
-
+  await db.insert(tasks).values(TASKS);
   console.log(`Seeded ${TASKS.length} tasks.`);
   await pool.end();
 };

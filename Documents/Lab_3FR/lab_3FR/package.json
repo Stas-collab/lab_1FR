@@ -24,6 +24,9 @@
     "#transforms/*": "./src/transforms/*"
   },
   "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
     "db:init": "node db/init.js",
     "seed": "node src/scripts/seed.js",
     "seed:force": "node src/scripts/seed.js --force",
@@ -36,7 +39,6 @@
     "format:check": "prettier --check \"src/**/*.js\"",
     "check": "npm run lint && npm run format:check",
     "predev": "npm run check",
-    "seed": "node src/scripts/seed.js",
     "migrate": "node src/migrations/migrate.js"
   },
   "dependencies": {
@@ -52,12 +54,14 @@
     "@fastify/websocket": "^8.3.1",
     "csv-parse": "^5.6.0",
     "csv-stringify": "^6.7.0",
+    "drizzle-orm": "^0.45.2",
     "fastify": "^4.28.1",
     "fastify-plugin": "^4.5.1",
     "mysql2": "^3.22.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9.0.0",
     "json-server": "^1.0.0-beta.15",
     "nodemon": "^3.1.0",
