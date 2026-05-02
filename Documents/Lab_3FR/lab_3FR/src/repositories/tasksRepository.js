@@ -1,39 +1,21 @@
-import fs from 'fs/promises';
-import path from 'path';
-
-import { ItemModel } from '#models/item.model.js';
-import { writeAtomic } from '#utils/fileUtils.js';
-
-const DATA_DIR = path.join(process.cwd(), 'data', 'items');
-
-export const tasksRepository = {
+export const createTasksRepository = (db) => ({
   async findAll() {
-    const files = await fs.readdir(DATA_DIR).catch(() => []);
-    const jsonFiles = files.filter((f) => f.endsWith('.json'));
-
-    const tasks = await Promise.all(
-      jsonFiles.map((f) => fs.readFile(path.join(DATA_DIR, f), 'utf8').then(JSON.parse))
-    );
-
-    return tasks.sort((a, b) => a.id - b.id);
+    const [rows] = await db.execute('SELECT * FROM tasks ORDER BY id ASC');
+    return rows.map(toDTO);
   },
 
   async findById(id) {
-    try {
-      const raw = await fs.readFile(path.join(DATA_DIR, `${id}.json`), 'utf8');
-      return JSON.parse(raw);
-    } catch {
-      return null;
-    }
+    const [rows] = await db.execute('SELECT * FROM tasks WHERE id = ?', [id]);
+    return rows[0] ? toDTO(rows[0]) : null;
   },
 
   async create(data) {
-    const all = await this.findAll();
-    const id = all.length ? Math.max(...all.map((t) => t.id)) + 1 : 1;
-
-    const task = { ...ItemModel, ...data, id };
-    await writeAtomic(path.join(DATA_DIR, `${id}.json`), task);
-    return task;
+    const { title, done = false, priority, dueDate = '', image = null } = data;
+    const [result] = await db.execute(
+      'INSERT INTO tasks (title, done, priority, dueDate, image) VALUES (?, ?, ?, ?, ?)',
+      [title, done ? 1 : 0, priority, dueDate, image]
+    );
+    return this.findById(result.insertId);
   },
 
   async update(id, updates) {
@@ -41,17 +23,26 @@ export const tasksRepository = {
     if (!task) return null;
 
     delete updates.id;
-    const updated = { ...task, ...updates };
-    await writeAtomic(path.join(DATA_DIR, `${id}.json`), updated);
-    return updated;
+    const merged = { ...task, ...updates };
+
+    await db.execute(
+      'UPDATE tasks SET title=?, done=?, priority=?, dueDate=?, image=? WHERE id=?',
+      [merged.title, merged.done ? 1 : 0, merged.priority, merged.dueDate ?? '', merged.image, id]
+    );
+    return this.findById(id);
   },
 
   async remove(id) {
-    try {
-      await fs.unlink(path.join(DATA_DIR, `${id}.json`));
-      return true;
-    } catch {
-      return false;
-    }
+    const [result] = await db.execute('DELETE FROM tasks WHERE id = ?', [id]);
+    return result.affectedRows > 0;
   },
-};
+});
+
+const toDTO = (row) => ({
+  id: row.id,
+  title: row.title,
+  done: row.done === 1 || row.done === true,
+  priority: row.priority,
+  dueDate: row.dueDate ?? '',
+  image: row.image ?? null,
+});

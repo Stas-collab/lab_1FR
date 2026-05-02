@@ -8,20 +8,22 @@ import fastifyStatic from '@fastify/static';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import fastifyWebsocket from '@fastify/websocket';
 import path from 'path';
+
+import mysqlPlugin from '../db/mysql.js';
+import { checkMigration } from '../db/migrate.js';
+import { createTasksRepository } from '#repositories/tasksRepository.js';
+import { createTasksService } from '#services/tasksService.js';
 
 import { envSchema } from '#config/env.schema.js';
 import { taskSchema } from '#schemas/task.schema.js';
 import { errorHandler } from '#utils/errorHandler.js';
-import { runBackup } from '#utils/backup.js';
-import { checkMigration } from '#migrations/migrate.js';
 import tasksRoutesV1 from '#routes/tasksRoutes.js';
 import healthRoutes from '#routes/healthRoutes.js';
 import tasksRoutesV2 from '#routes/tasksRoutesV2.js';
 import githubRoutesV1 from '#routes/githubRoutesV1.js';
 import githubRoutesV2 from '#routes/githubRoutesV2.js';
-
-import fastifyWebsocket from '@fastify/websocket';
 import backupRoutes from '#routes/backupRoutes.js';
 
 export const buildApp = async () => {
@@ -45,10 +47,18 @@ export const buildApp = async () => {
   });
   await fastify.register(sensible);
 
+  // ── MySQL ─────────────────────────────────────────────────────────────────
+  await fastify.register(mysqlPlugin);
+
+  // ── Dependency Injection ──────────────────────────────────────────────────
+  const tasksRepository = createTasksRepository(fastify.mysql);
+  const tasksService = createTasksService(tasksRepository);
+  fastify.decorate('tasksService', tasksService);
+
   await fastify.register(fastifyWebsocket);
   await fastify.register(backupRoutes, { prefix: '/api/v1' });
 
-  // ── Rate Limiting (глобально, 100 req/хв) ────────────────────────────────
+  // ── Rate Limiting ─────────────────────────────────────────────────────────
   await fastify.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
@@ -64,7 +74,7 @@ export const buildApp = async () => {
     openapi: {
       info: {
         title: 'Todo API',
-        description: 'REST API for Todo tasks management (Lab 6)',
+        description: 'REST API for Todo tasks management (Lab 8 MySQL)',
         version: '2.0.0',
       },
       tags: [
@@ -98,7 +108,7 @@ export const buildApp = async () => {
     request.log.info({ method: request.method, url: request.url }, 'Incoming request');
   });
 
-  // ── Маршрути (версіонування через prefix) ────────────────────────────────
+  // ── Маршрути ──────────────────────────────────────────────────────────────
   await fastify.register(healthRoutes, { prefix: '/api/v1' });
   await fastify.register(tasksRoutesV1, { prefix: '/api/v1' });
   await fastify.register(tasksRoutesV2, { prefix: '/api/v2' });
@@ -109,7 +119,6 @@ export const buildApp = async () => {
     instance.log.info('Server closed');
   });
 
-  await runBackup();
   await checkMigration(fastify);
 
   return fastify;

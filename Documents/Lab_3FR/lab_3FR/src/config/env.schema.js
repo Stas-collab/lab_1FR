@@ -2,6 +2,26 @@ export const envSchema = {
   type: 'object',
   required: ['PORT', 'APP_HOSTNAME', 'NODE_ENV', 'ADMIN_API_KEY'],
   properties: {
+    MYSQL_HOST: {
+      type: 'string',
+      default: '127.0.0.1',
+    },
+    MYSQL_PORT: {
+      type: 'string',
+      default: '3306',
+    },
+    MYSQL_USER: {
+      type: 'string',
+      default: 'root',
+    },
+    MYSQL_PASSWORD: {
+      type: 'string',
+      default: '',
+    },
+    MYSQL_DB: {
+      type: 'string',
+      default: 'lab8',
+    },
     GITHUB_TOKEN: {
       type: 'string',
       default: '',

@@ -153,21 +153,13 @@ export const getTaskDetailsSchema = {
   response: {
     200: {
       type: 'object',
+      additionalProperties: true,
       properties: {
         id: { type: 'integer' },
         title: { type: 'string' },
         done: { type: 'boolean' },
-        priority: { type: ['object', 'null'] },
         dueDate: { type: 'string' },
         image: { type: ['string', 'null'] },
-      },
-    },
-    404: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'integer' },
-        error: { type: 'string' },
-        message: { type: 'string' },
       },
     },
   },
