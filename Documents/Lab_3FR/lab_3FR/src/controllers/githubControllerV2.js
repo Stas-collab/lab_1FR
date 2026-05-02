@@ -56,19 +56,16 @@ const restGetContributors = async (owner, repo) => {
   return logins;
 };
 
-export async function getSharedReposV2(request, reply) {
+export async function getSharedReposV2(request, reply, token) {
   const repoPath = request.query.repo;
+
   if (!repoPath) {
-    return reply.badRequest('Query parameter "repo" is required. Example: ?repo=fastify/fastify');
+    return reply.badRequest('Query parameter "repo" is required');
   }
 
   const [owner, repo] = repoPath.split('/');
-  if (!owner || !repo) {
-    return reply.badRequest('Invalid repo format. Use owner/repo');
-  }
 
-  // GraphQL — отримати contributors цільового репо та список репозиторіїв
-  const data = await graphqlFetch(buildQuery(owner, repo));
+  const data = await graphqlFetch(buildQuery(owner, repo), token);
 
   const targetContribs = new Set(data.repository.mentionableUsers.nodes.map((n) => n.login));
 

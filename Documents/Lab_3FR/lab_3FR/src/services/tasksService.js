@@ -1,8 +1,6 @@
-import { tasksRepository } from '#repositories/tasksRepository.js';
-
-export const tasksService = {
+export const createTasksService = (repository) => ({
   async findAll(query) {
-    const tasks = await tasksRepository.findAll();
+    const tasks = await repository.findAll();
     if (query?.priority) {
       return tasks.filter((t) => t.priority === query.priority);
     }
@@ -10,18 +8,18 @@ export const tasksService = {
   },
 
   async findById(id) {
-    return tasksRepository.findById(Number(id));
+    return repository.findById(id);
   },
 
   async create(data) {
-    return tasksRepository.create(data);
+    return repository.create(data);
   },
 
   async update(id, data) {
-    return tasksRepository.update(Number(id), data);
+    return repository.update(id, data);
   },
 
   async remove(id) {
-    return tasksRepository.remove(Number(id));
+    return repository.remove(id);
   },
-};
+});

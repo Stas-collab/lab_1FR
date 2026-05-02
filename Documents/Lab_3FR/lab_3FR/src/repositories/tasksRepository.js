@@ -1,57 +1,47 @@
-import fs from 'fs/promises';
-import path from 'path';
+import { Task } from '../../db/models/task.model.js';
 
-import { ItemModel } from '#models/item.model.js';
-import { writeAtomic } from '#utils/fileUtils.js';
+const toDTO = (doc) => {
+  if (!doc) return null;
+  const { _id, __v, ...rest } = doc;
+  return { id: _id.toString(), ...rest };
+};
 
-const DATA_DIR = path.join(process.cwd(), 'data', 'items');
-
-export const tasksRepository = {
+export const createTasksRepository = () => ({
   async findAll() {
-    const files = await fs.readdir(DATA_DIR).catch(() => []);
-    const jsonFiles = files.filter((f) => f.endsWith('.json'));
-
-    const tasks = await Promise.all(
-      jsonFiles.map((f) => fs.readFile(path.join(DATA_DIR, f), 'utf8').then(JSON.parse))
-    );
-
-    return tasks.sort((a, b) => a.id - b.id);
+    const docs = await Task.find({}).lean();
+    return docs.map(toDTO);
   },
 
   async findById(id) {
     try {
-      const raw = await fs.readFile(path.join(DATA_DIR, `${id}.json`), 'utf8');
-      return JSON.parse(raw);
+      const doc = await Task.findById(id).lean();
+      return toDTO(doc);
     } catch {
       return null;
     }
   },
 
   async create(data) {
-    const all = await this.findAll();
-    const id = all.length ? Math.max(...all.map((t) => t.id)) + 1 : 1;
-
-    const task = { ...ItemModel, ...data, id };
-    await writeAtomic(path.join(DATA_DIR, `${id}.json`), task);
-    return task;
+    const doc = await Task.create(data);
+    return toDTO(doc.toObject());
   },
 
   async update(id, updates) {
-    const task = await this.findById(id);
-    if (!task) return null;
-
-    delete updates.id;
-    const updated = { ...task, ...updates };
-    await writeAtomic(path.join(DATA_DIR, `${id}.json`), updated);
-    return updated;
+    try {
+      delete updates.id;
+      const doc = await Task.findByIdAndUpdate(id, { $set: updates }, { new: true }).lean();
+      return toDTO(doc);
+    } catch {
+      return null;
+    }
   },
 
   async remove(id) {
     try {
-      await fs.unlink(path.join(DATA_DIR, `${id}.json`));
-      return true;
+      const result = await Task.findByIdAndDelete(id);
+      return !!result;
     } catch {
       return false;
     }
   },
-};
+});

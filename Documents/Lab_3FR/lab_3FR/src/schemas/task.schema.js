@@ -1,9 +1,9 @@
-// Спільна форма об'єкта Task — додано dueDate та image
+// Спільна форма об'єкта Task
 export const taskSchema = {
   $id: 'Task',
   type: 'object',
   properties: {
-    id: { type: 'integer' },
+    id: { type: 'string' },
     title: { type: 'string' },
     done: { type: 'boolean' },
     priority: { type: 'string', enum: ['low', 'medium', 'high'] },
@@ -51,10 +51,11 @@ export const createTaskSchema = {
 
 // PATCH /tasks/:id
 export const updateTaskSchema = {
+  tags: ['tasks-v1'],
   params: {
     type: 'object',
     properties: {
-      id: { type: 'integer', minimum: 1 },
+      id: { type: 'string' },
     },
     required: ['id'],
   },
@@ -76,10 +77,11 @@ export const updateTaskSchema = {
 
 // DELETE /tasks/:id
 export const deleteTaskSchema = {
+  tags: ['tasks-v1'],
   params: {
     type: 'object',
     properties: {
-      id: { type: 'integer', minimum: 1 },
+      id: { type: 'string' },
     },
     required: ['id'],
   },
@@ -95,10 +97,11 @@ export const deleteTaskSchema = {
 
 // POST /tasks/:id/image
 export const uploadImageSchema = {
+  tags: ['tasks-v1'],
   params: {
     type: 'object',
     properties: {
-      id: { type: 'integer', minimum: 1 },
+      id: { type: 'string' },
     },
     required: ['id'],
   },
@@ -107,7 +110,7 @@ export const uploadImageSchema = {
   },
 };
 
-// GET /tasks/export — без body schema (повертає CSV)
+// GET /tasks/export
 export const exportTasksSchema = {
   tags: ['tasks-v1'],
   querystring: {
@@ -121,6 +124,7 @@ export const exportTasksSchema = {
 
 // POST /tasks/import
 export const importTasksSchema = {
+  tags: ['tasks-v1'],
   response: {
     200: {
       type: 'object',
@@ -147,27 +151,19 @@ export const getTaskDetailsSchema = {
   tags: ['tasks-v1'],
   params: {
     type: 'object',
-    properties: { id: { type: 'integer', minimum: 1 } },
+    properties: { id: { type: 'string' } },
     required: ['id'],
   },
   response: {
     200: {
       type: 'object',
+      additionalProperties: true,
       properties: {
-        id: { type: 'integer' },
+        id: { type: 'string' },
         title: { type: 'string' },
         done: { type: 'boolean' },
-        priority: { type: ['object', 'null'] },
         dueDate: { type: 'string' },
         image: { type: ['string', 'null'] },
-      },
-    },
-    404: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'integer' },
-        error: { type: 'string' },
-        message: { type: 'string' },
       },
     },
   },
@@ -206,6 +202,7 @@ export const getTasksPaginatedSchema = {
   },
 };
 
+// GET /api/v1/tasks/stream
 export const streamTasksSchema = {
   tags: ['tasks-v1'],
   response: {

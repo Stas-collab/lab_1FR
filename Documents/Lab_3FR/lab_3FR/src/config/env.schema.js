@@ -2,6 +2,14 @@ export const envSchema = {
   type: 'object',
   required: ['PORT', 'APP_HOSTNAME', 'NODE_ENV', 'ADMIN_API_KEY'],
   properties: {
+    MONGO_URL: {
+      type: 'string',
+      default: 'mongodb://localhost:27017',
+    },
+    MONGO_DB_NAME: {
+      type: 'string',
+      default: 'lab8',
+    },
     GITHUB_TOKEN: {
       type: 'string',
       default: '',

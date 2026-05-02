@@ -9,12 +9,14 @@ import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import path from 'path';
+import mongoPlugin from '../db/mongo.js';
+import { createTasksRepository } from '#repositories/tasksRepository.js';
+import { createTasksService } from '#services/tasksService.js';
 
 import { envSchema } from '#config/env.schema.js';
 import { taskSchema } from '#schemas/task.schema.js';
 import { errorHandler } from '#utils/errorHandler.js';
-import { runBackup } from '#utils/backup.js';
-import { checkMigration } from '#migrations/migrate.js';
+
 import tasksRoutesV1 from '#routes/tasksRoutes.js';
 import healthRoutes from '#routes/healthRoutes.js';
 import tasksRoutesV2 from '#routes/tasksRoutesV2.js';
@@ -44,6 +46,14 @@ export const buildApp = async () => {
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   });
   await fastify.register(sensible);
+
+  // ── MongoDB ───────────────────────────────────────────────────────────────
+  await fastify.register(mongoPlugin);
+
+  // ── Dependency Injection ──────────────────────────────────────────────────
+  const tasksRepository = createTasksRepository();
+  const tasksService = createTasksService(tasksRepository);
+  fastify.decorate('tasksService', tasksService);
 
   await fastify.register(fastifyWebsocket);
   await fastify.register(backupRoutes, { prefix: '/api/v1' });
@@ -108,9 +118,6 @@ export const buildApp = async () => {
   fastify.addHook('onClose', async (instance) => {
     instance.log.info('Server closed');
   });
-
-  await runBackup();
-  await checkMigration(fastify);
 
   return fastify;
 };
