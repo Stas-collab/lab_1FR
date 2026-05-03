@@ -35,7 +35,6 @@
     "format:check": "prettier --check \"src/**/*.js\"",
     "check": "npm run lint && npm run format:check",
     "predev": "npm run check",
-    "seed": "node src/scripts/seed.js",
     "migrate": "node src/migrations/migrate.js"
   },
   "dependencies": {
