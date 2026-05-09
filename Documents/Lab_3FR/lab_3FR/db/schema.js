@@ -8,3 +8,9 @@ export const tasks = mysqlTable('tasks', {
   dueDate: varchar('dueDate', { length: 20 }).default(''),
   image: varchar('image', { length: 500 }),
 });
+
+export const users = mysqlTable('users', {
+  id: int('id').autoincrement().primaryKey(),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  password: varchar('password', { length: 255 }).notNull(),
+});

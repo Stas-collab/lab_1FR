@@ -6,6 +6,14 @@ export const envSchema = {
       type: 'string',
       default: '127.0.0.1',
     },
+    REDIS_HOST: {
+      type: 'string',
+      default: '127.0.0.1',
+    },
+    REDIS_PORT: {
+      type: 'string',
+      default: '6379',
+    },
     MYSQL_PORT: {
       type: 'string',
       default: '3306',

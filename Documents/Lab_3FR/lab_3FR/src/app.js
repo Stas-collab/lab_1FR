@@ -12,8 +12,12 @@ import fastifyWebsocket from '@fastify/websocket';
 import path from 'path';
 
 import mysqlPlugin from '../db/mysql.js';
+import drizzlePlugin from '../db/drizzle.js';
+import redisPlugin from '../db/redis.js';
 import { createTasksRepository } from '#repositories/tasksRepository.js';
 import { createTasksService } from '#services/tasksService.js';
+import { createTasksServiceV2 } from '#services/tasksServiceV2.js';
+import { createExternalFetchService } from '#utils/externalFetch.js';
 
 import { envSchema } from '#config/env.schema.js';
 import { taskSchema } from '#schemas/task.schema.js';
@@ -24,7 +28,6 @@ import tasksRoutesV2 from '#routes/tasksRoutesV2.js';
 import githubRoutesV1 from '#routes/githubRoutesV1.js';
 import githubRoutesV2 from '#routes/githubRoutesV2.js';
 import backupRoutes from '#routes/backupRoutes.js';
-import drizzlePlugin from '../db/drizzle.js';
 
 export const buildApp = async () => {
   const fastify = Fastify({
@@ -47,22 +50,31 @@ export const buildApp = async () => {
   });
   await fastify.register(sensible);
 
-  // ── MySQL ─────────────────────────────────────────────────────────────────
+  // ── MySQL + Drizzle ───────────────────────────────────────────────────────
   await fastify.register(mysqlPlugin);
   await fastify.register(drizzlePlugin);
+
+  // ── Redis (ПЕРЕД rate-limit!) ─────────────────────────────────────────────
+  await fastify.register(redisPlugin);
 
   // ── Dependency Injection ──────────────────────────────────────────────────
   const tasksRepository = createTasksRepository(fastify.drizzle);
   const tasksService = createTasksService(tasksRepository);
+  const tasksServiceV2 = createTasksServiceV2({ tasksService, redis: fastify.redis });
+  const externalFetchService = createExternalFetchService(fastify.redis);
+
   fastify.decorate('tasksService', tasksService);
+  fastify.decorate('tasksServiceV2', tasksServiceV2);
+  fastify.decorate('externalFetchService', externalFetchService);
 
   await fastify.register(fastifyWebsocket);
   await fastify.register(backupRoutes, { prefix: '/api/v1' });
 
-  // ── Rate Limiting ─────────────────────────────────────────────────────────
+  // ── Rate Limiting (з Redis store) ─────────────────────────────────────────
   await fastify.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
+    redis: fastify.redis,
     errorResponseBuilder: () => ({
       statusCode: 429,
       error: 'Too Many Requests',
@@ -75,13 +87,13 @@ export const buildApp = async () => {
     openapi: {
       info: {
         title: 'Todo API',
-        description: 'REST API for Todo tasks management (Lab 8 MySQL)',
-        version: '2.0.0',
+        description: 'REST API for Todo tasks management (Lab 9 Redis)',
+        version: '3.0.0',
       },
       tags: [
         { name: 'health', description: 'Health check endpoints' },
         { name: 'tasks-v1', description: 'Tasks API v1' },
-        { name: 'tasks-v2', description: 'Tasks API v2 (with pagination)' },
+        { name: 'tasks-v2', description: 'Tasks API v2 (with pagination + cache)' },
         { name: 'github', description: 'GitHub analytics' },
       ],
     },

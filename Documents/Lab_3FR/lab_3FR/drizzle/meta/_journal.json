@@ -8,6 +8,20 @@
       "when": 1777732667860,
       "tag": "0000_bored_runaways",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1777892097880,
+      "tag": "0001_loud_wilson_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1778348651341,
+      "tag": "0002_vengeful_firestar",
+      "breakpoints": true
     }
   ]
 }

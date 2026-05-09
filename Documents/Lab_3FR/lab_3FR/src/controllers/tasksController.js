@@ -5,7 +5,6 @@ import { parse } from 'csv-parse/sync';
 import { createWriteStream } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
-import { fetchExternalDetails } from '#utils/externalFetch.js';
 import { taskEvents } from '#events/taskEvents.js';
 import { Readable, Transform } from 'stream';
 import { pipeline } from 'stream/promises';
@@ -23,6 +22,7 @@ export async function createTask(request, reply) {
   const task = await request.server.tasksService.create(request.body);
   const result = { ...task, image: buildImageUrl(request, task.image) };
   taskEvents.emit('task:created', result);
+  await request.server.tasksServiceV2.invalidateCache();
   return reply.status(201).send(result);
 }
 
@@ -31,6 +31,7 @@ export async function updateTask(request, reply) {
   if (!task) throw reply.notFound(MESSAGES.TASK_NOT_FOUND);
   const result = { ...task, image: buildImageUrl(request, task.image) };
   taskEvents.emit('task:updated', result);
+  await request.server.tasksServiceV2.invalidateCache();
   return reply.send(result);
 }
 
@@ -38,6 +39,7 @@ export async function deleteTask(request, reply) {
   const removed = await request.server.tasksService.remove(request.params.id);
   if (!removed) throw reply.notFound(MESSAGES.TASK_NOT_FOUND);
   taskEvents.emit('task:deleted', { id: Number(request.params.id) });
+  await request.server.tasksServiceV2.invalidateCache();
   return reply.send({ message: 'Task deleted' });
 }
 
@@ -175,6 +177,6 @@ export async function uploadImage(request, reply) {
 export async function getTaskDetails(request, reply) {
   const task = await request.server.tasksService.findById(request.params.id);
   if (!task) throw reply.notFound(MESSAGES.TASK_NOT_FOUND);
-  const priority = await fetchExternalDetails(task.priority);
+  const priority = await request.server.externalFetchService.fetchPriorities(task.priority);
   return reply.send({ ...task, image: buildImageUrl(request, task.image), priority });
 }
