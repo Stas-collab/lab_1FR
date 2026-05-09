@@ -6,6 +6,10 @@ export const envSchema = {
       type: 'string',
       default: '127.0.0.1',
     },
+    JWT_SECRET: {
+      type: 'string',
+      default: 'my-super-secret-jwt-key-minimum-32-chars!!',
+    },
     REDIS_HOST: {
       type: 'string',
       default: '127.0.0.1',

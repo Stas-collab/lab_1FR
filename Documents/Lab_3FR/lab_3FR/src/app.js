@@ -29,6 +29,13 @@ import githubRoutesV1 from '#routes/githubRoutesV1.js';
 import githubRoutesV2 from '#routes/githubRoutesV2.js';
 import backupRoutes from '#routes/backupRoutes.js';
 
+import fastifyJwt from '@fastify/jwt';
+import fastifyCookie from '@fastify/cookie';
+import { REDIS_KEYS } from '#constants/redisKeys.js';
+import { createUsersRepository } from '#repositories/usersRepository.js';
+import { createAuthService } from '#services/authService.js';
+import authRoutes from '#routes/authRoutes.js';
+
 export const buildApp = async () => {
   const fastify = Fastify({
     logger: {
@@ -58,6 +65,13 @@ export const buildApp = async () => {
   await fastify.register(redisPlugin);
 
   // ── Dependency Injection ──────────────────────────────────────────────────
+  const usersRepository = createUsersRepository(fastify.drizzle);
+  const authService = createAuthService({
+    usersRepository,
+    redis: fastify.redis,
+    fastify,
+  });
+  fastify.decorate('authService', authService);
   const tasksRepository = createTasksRepository(fastify.drizzle);
   const tasksService = createTasksService(tasksRepository);
   const tasksServiceV2 = createTasksServiceV2({ tasksService, redis: fastify.redis });
@@ -90,11 +104,22 @@ export const buildApp = async () => {
         description: 'REST API for Todo tasks management (Lab 9 Redis)',
         version: '3.0.0',
       },
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
+          },
+        },
+      },
+      security: [{ bearerAuth: [] }],
       tags: [
         { name: 'health', description: 'Health check endpoints' },
         { name: 'tasks-v1', description: 'Tasks API v1' },
         { name: 'tasks-v2', description: 'Tasks API v2 (with pagination + cache)' },
         { name: 'github', description: 'GitHub analytics' },
+        { name: 'auth', description: 'Authentication (JWT)' },
       ],
     },
   });
@@ -121,12 +146,26 @@ export const buildApp = async () => {
     request.log.info({ method: request.method, url: request.url }, 'Incoming request');
   });
 
+  // ── Cookie ────────────────────────────────────────────────────────────────
+  await fastify.register(fastifyCookie);
+
+  // ── JWT з blacklist ───────────────────────────────────────────────────────
+  await fastify.register(fastifyJwt, {
+    secret: fastify.config.JWT_SECRET,
+    trusted: async (_request, decodedToken) => {
+      if (!decodedToken.jti) return true;
+      const isBlacklisted = await fastify.redis.get(REDIS_KEYS.blacklist(decodedToken.jti));
+      return !isBlacklisted;
+    },
+  });
+
   // ── Маршрути ──────────────────────────────────────────────────────────────
   await fastify.register(healthRoutes, { prefix: '/api/v1' });
   await fastify.register(tasksRoutesV1, { prefix: '/api/v1' });
   await fastify.register(tasksRoutesV2, { prefix: '/api/v2' });
   await fastify.register(githubRoutesV1, { prefix: '/api/v1' });
   await fastify.register(githubRoutesV2, { prefix: '/api/v2' });
+  await fastify.register(authRoutes, { prefix: '/auth' });
 
   fastify.addHook('onClose', async (instance) => {
     instance.log.info('Server closed');
