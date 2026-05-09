@@ -28,6 +28,12 @@ import tasksRoutesV2 from '#routes/tasksRoutesV2.js';
 import githubRoutesV1 from '#routes/githubRoutesV1.js';
 import githubRoutesV2 from '#routes/githubRoutesV2.js';
 import backupRoutes from '#routes/backupRoutes.js';
+import fastifyCookie from '@fastify/cookie';
+import fastifySession from '@fastify/session';
+import RedisStore from 'fastify-session-redis-store';
+import { createUsersRepository } from '#repositories/usersRepository.js';
+import { createAuthService } from '#services/authService.js';
+import authRoutes from '#routes/authRoutes.js';
 
 export const buildApp = async () => {
   const fastify = Fastify({
@@ -58,6 +64,9 @@ export const buildApp = async () => {
   await fastify.register(redisPlugin);
 
   // ── Dependency Injection ──────────────────────────────────────────────────
+  const usersRepository = createUsersRepository(fastify.drizzle);
+  const authService = createAuthService({ usersRepository });
+  fastify.decorate('authService', authService);
   const tasksRepository = createTasksRepository(fastify.drizzle);
   const tasksService = createTasksService(tasksRepository);
   const tasksServiceV2 = createTasksServiceV2({ tasksService, redis: fastify.redis });
@@ -82,6 +91,18 @@ export const buildApp = async () => {
     }),
   });
 
+  await fastify.register(fastifyCookie);
+  await fastify.register(fastifySession, {
+    secret: fastify.config.SESSION_SECRET,
+    store: new RedisStore({ client: fastify.redis }),
+    cookie: {
+      httpOnly: true,
+      secure: fastify.config.NODE_ENV === 'production',
+      maxAge: 86400000, // 24 години
+    },
+    saveUninitialized: false,
+  });
+
   // ── Swagger ───────────────────────────────────────────────────────────────
   await fastify.register(swagger, {
     openapi: {
@@ -95,6 +116,7 @@ export const buildApp = async () => {
         { name: 'tasks-v1', description: 'Tasks API v1' },
         { name: 'tasks-v2', description: 'Tasks API v2 (with pagination + cache)' },
         { name: 'github', description: 'GitHub analytics' },
+        { name: 'auth', description: 'Authentication endpoints' },
       ],
     },
   });
@@ -127,6 +149,7 @@ export const buildApp = async () => {
   await fastify.register(tasksRoutesV2, { prefix: '/api/v2' });
   await fastify.register(githubRoutesV1, { prefix: '/api/v1' });
   await fastify.register(githubRoutesV2, { prefix: '/api/v2' });
+  await fastify.register(authRoutes, { prefix: '/auth' });
 
   fastify.addHook('onClose', async (instance) => {
     instance.log.info('Server closed');

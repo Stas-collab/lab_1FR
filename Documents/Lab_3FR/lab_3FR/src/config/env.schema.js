@@ -6,6 +6,10 @@ export const envSchema = {
       type: 'string',
       default: '127.0.0.1',
     },
+    SESSION_SECRET: {
+      type: 'string',
+      default: 'my-super-secret-key-minimum-32-chars!!',
+    },
     REDIS_HOST: {
       type: 'string',
       default: '127.0.0.1',
