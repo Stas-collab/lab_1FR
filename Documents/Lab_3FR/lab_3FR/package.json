@@ -24,8 +24,12 @@
     "#transforms/*": "./src/transforms/*"
   },
   "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "dotenv -e .env -- drizzle-kit migrate",
+    "db:migrate:test": "dotenv -e .env.test -- drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:init": "node db/init.js",
     "seed": "node src/scripts/seed.js",
@@ -65,11 +69,14 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@vitest/coverage-v8": "^4.1.6",
+    "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.0.0",
     "json-server": "^1.0.0-beta.15",
     "nodemon": "^3.1.0",
     "pino-pretty": "^11.0.0",
-    "prettier": "^3.3.0"
+    "prettier": "^3.3.0",
+    "vitest": "^4.1.6"
   }
 }

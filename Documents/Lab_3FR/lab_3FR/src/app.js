@@ -61,6 +61,11 @@ export const buildApp = async () => {
   await fastify.register(mysqlPlugin);
   await fastify.register(drizzlePlugin);
 
+  // Expose drizzle для тестів
+  if (!fastify.hasDecorator('drizzle')) {
+    fastify.decorate('drizzle', fastify.drizzle);
+  }
+
   // ── Redis (ПЕРЕД rate-limit!) ─────────────────────────────────────────────
   await fastify.register(redisPlugin);
 
